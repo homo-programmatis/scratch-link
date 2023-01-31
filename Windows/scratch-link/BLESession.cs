@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
 using System.Threading.Tasks;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Advertisement;
@@ -240,9 +241,23 @@ namespace scratch_link
         private void OnAdvertisementReceived(BluetoothLEAdvertisementWatcher sender,
             BluetoothLEAdvertisementReceivedEventArgs args)
         {
+            Program.LogLine(    "BLESession.OnAdvertisementReceived: ");
+            Program.LogLine(    "    RawSignalStrengthInDBm = " + args.RawSignalStrengthInDBm);
+            Program.LogLine(    "    AdvertisementType      = " + args.AdvertisementType);
+            Program.LogLine(    "    BluetoothAddress       = " + args.BluetoothAddress);
+            Program.LogLine(    "    BluetoothLEAdvertisement:");
+            Program.LogLine(    "        LocalName = " + args.Advertisement.LocalName);
+            Program.LogLine(    "        ServiceUuids:");
+
+            foreach (Guid guid in args.Advertisement.ServiceUuids)
+            {
+                Program.LogLine("            " + guid);
+            }
+
             if (args.RawSignalStrengthInDBm == -127)
             {
                 // TODO: figure out why we get redundant(?) advertisements with RSSI=-127
+                Program.LogLine(" ... Wrong RawSignalStrengthInDBm");
                 return;
             }
 
@@ -250,12 +265,14 @@ namespace scratch_link
                 args.AdvertisementType != BluetoothLEAdvertisementType.ConnectableUndirected)
             {
                 // Advertisement does not indicate that the device can connect
+                Program.LogLine(" ... Wrong AdvertisementType");
                 return;
             }
 
             if (!_filters.Any(filter => filter.Matches(args.Advertisement)))
             {
                 // No matching filters
+                Program.LogLine(" ... Filters rejected");
                 return;
             }
 
@@ -266,6 +283,7 @@ namespace scratch_link
                 new JProperty("peripheralId", new JValue(args.BluetoothAddress))
             };
 
+            Program.LogLine(    " ... Accepted");
             _reportedPeripherals.Add(args.BluetoothAddress);
             SendRemoteRequest("didDiscoverPeripheral", peripheralData);
         }
